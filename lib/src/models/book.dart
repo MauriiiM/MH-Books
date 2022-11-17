@@ -85,6 +85,15 @@ class Book implements Comparable<Book> {
       );
 
   @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Book && (isbn10 == other.isbn10 || isbn13 == other.isbn13);
+
+  @override
+  int get hashCode =>
+      title.hashCode ^ subtitle.hashCode ^ isbn10.hashCode ^ isbn13.hashCode;
+
+  @override
   int compareTo(Book other) {
     final titleComp = title.compareTo(other.title);
     if (titleComp == 0) {
