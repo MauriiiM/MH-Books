@@ -1,5 +1,5 @@
 class Book {
-  final String? title;
+  final String title;
   final String? subtitle;
   final String? authors;
   final String? publisher;
@@ -12,9 +12,10 @@ class Book {
   final String? price;
   final String? image;
   final String? url;
+  final Map<String, String>? pdfs;
 
   const Book({
-    this.title,
+    required this.title,
     this.subtitle,
     this.authors,
     this.publisher,
@@ -27,8 +28,9 @@ class Book {
     this.price,
     this.image,
     this.url,
+    this.pdfs,
   }) : assert(
-          title != null && (isbn10 != null || isbn13 != null),
+          isbn10 != null || isbn13 != null,
           'All key values cannot be null.',
         );
 
@@ -39,13 +41,14 @@ class Book {
         publisher: json['publisher'],
         isbn10: json['isbn10'],
         isbn13: json['isbn13'],
-        pages: json['pages'],
+        pages: json['pages'] == null ? null : int.tryParse(json['pages']),
         year: json['year'],
-        rating: json['rating'],
+        rating: json['rating'] == null ? null : double.tryParse(json['rating']),
         desc: json['desc'],
         price: json['price'],
         image: json['image'],
         url: json['url'],
+        pdfs: json['pdf'],
       );
 
   Book copyWith({
@@ -62,6 +65,7 @@ class Book {
     String? price,
     String? image,
     String? url,
+    Map<String, String>? pdfs,
   }) =>
       Book(
         title: title ?? this.title,
@@ -77,5 +81,6 @@ class Book {
         price: price ?? this.price,
         image: image ?? this.image,
         url: url ?? this.url,
+        pdfs: pdfs ?? this.pdfs,
       );
 }
