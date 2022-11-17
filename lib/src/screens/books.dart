@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mh_books/src/models/books.dart';
+import 'package:mh_books/src/models/book.dart';
 import 'package:mh_books/src/repos/books.dart';
+import 'package:mh_books/src/screens/book_detail.dart';
 import 'package:mh_books/src/widgets/book_listing.dart';
 
 class BooksScreen extends StatefulWidget {
@@ -14,8 +15,10 @@ class _BooksScreenState extends State<BooksScreen> {
   static const title = 'Books';
   late Future<List<Book>> booksFuture;
 
+  @override
   void initState() {
     booksFuture = BooksRepository.fetchNewBooks();
+    super.initState();
   }
 
   // @override
@@ -25,9 +28,14 @@ class _BooksScreenState extends State<BooksScreen> {
   // }
 
   Iterable<Widget> bookListings(List<Book> books) =>
-      books.map((c) => BookListing(
-            c,
-            onTap: () => null,
+      books.map((b) => BookListing(
+            b,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookDetailScreen(book: b),
+              ),
+            ),
           ));
 
   @override
@@ -35,35 +43,43 @@ class _BooksScreenState extends State<BooksScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(title),
-        actions: [],
       ),
       body: FutureBuilder<List<Book>>(
         future: booksFuture,
         builder: (final context, final snapshot) {
-          if (!snapshot.hasData &&
-              snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          } else if (snapshot.hasData) {
+          if (snapshot.hasData) {
             final books = snapshot.data!;
             return books.isEmpty
                 ? const Center(
                     child: Text('There are no books to display.'),
                   )
                 : Scrollbar(
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: bookListings(books).toList(),
-                    ),
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: bookListings(books).toList(),
+                      ),
                   );
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                children: [
+                  const Text(
+                    'There was an error loading the books.',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => setState(() {
+                      booksFuture = BooksRepository.fetchNewBooks();
+                    }),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
           }
 
           return const Center(
-            child: Text(
-              'There was an error loading the books.',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: CircularProgressIndicator(),
           );
         },
       ),
