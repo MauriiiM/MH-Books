@@ -1,4 +1,4 @@
-class Book {
+class Book implements Comparable<Book> {
   final String title;
   final String? subtitle;
   final String? authors;
@@ -83,4 +83,22 @@ class Book {
         url: url ?? this.url,
         pdfs: pdfs ?? this.pdfs,
       );
+
+  @override
+  int compareTo(Book other) {
+    final titleComp = title.compareTo(other.title);
+    if (titleComp == 0) {
+      final subtitleComp = (subtitle ?? '').compareTo(other.subtitle ?? '');
+      if (subtitleComp != 0) {
+        return subtitleComp;
+      }
+
+      final authorsComp = (authors ?? '').compareTo(other.authors ?? '');
+      if (authorsComp != 0) {
+        return authorsComp;
+      }
+    }
+
+    return titleComp;
+  }
 }
