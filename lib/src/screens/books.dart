@@ -1,33 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mh_books/src/models/book.dart';
-import 'package:mh_books/src/repos/books.dart';
+import 'package:mh_books/src/providers_loader.dart';
 import 'package:mh_books/src/screens/book_detail.dart';
 import 'package:mh_books/src/widgets/book_listing.dart';
 
-class BooksScreen extends StatefulWidget {
+class BooksScreen extends StatelessWidget {
+  static const title = 'Books';
+
   const BooksScreen({super.key});
 
-  @override
-  State<BooksScreen> createState() => _BooksScreenState();
-}
-
-class _BooksScreenState extends State<BooksScreen> {
-  static const title = 'Books';
-  late Future<List<Book>> booksFuture;
-
-  @override
-  void initState() {
-    booksFuture = BooksRepository.fetchNewBooks();
-    super.initState();
-  }
-
-  // @override
-  // void didChangeDependencies() {
-  //   books = BookProvider.of(context);
-  //   super.didChangeDependencies();
-  // }
-
-  Iterable<Widget> bookListings(List<Book> books) =>
+  Iterable<Widget> bookListings(
+    Iterable<Book> books, {
+    required BuildContext context,
+  }) =>
       books.map((b) => BookListing(
             b,
             onTap: () => Navigator.push(
@@ -44,44 +30,29 @@ class _BooksScreenState extends State<BooksScreen> {
       appBar: AppBar(
         title: const Text(title),
       ),
-      body: FutureBuilder<List<Book>>(
-        future: booksFuture,
-        builder: (final context, final snapshot) {
-          if (snapshot.hasData) {
-            final books = snapshot.data!;
-            return books.isEmpty
-                ? const Center(
-                    child: Text('There are no books to display.'),
-                  )
-                : Scrollbar(
+      body: Consumer(
+        builder: ((context, ref, child) => ref.watch(newBooksProvider).when(
+              data: (books) => books.isEmpty
+                  ? const Center(
+                      child: Text('There are no books to display.'),
+                    )
+                  : Scrollbar(
                       child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: bookListings(books).toList(),
+                        children: bookListings(
+                          books,
+                          context: context,
+                        ).toList(),
                       ),
-                  );
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                children: [
-                  const Text(
-                    'There was an error loading the books.',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => setState(() {
-                      booksFuture = BooksRepository.fetchNewBooks();
-                    }),
-                    child: const Text('Retry'),
-                  ),
-                ],
+                    ),
+              error: (object, stackTrace) => const Center(
+                child: Text(
+                  'There was an error loading the books.',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
-            );
-          }
-
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        },
+              loading: () => const Center(child: CircularProgressIndicator()),
+            )),
       ),
     );
   }
