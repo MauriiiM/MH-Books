@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mh_books/src/models/book.dart';
 import 'package:mh_books/src/screens/book_detail.dart';
-import 'package:mh_books/src/states/books.dart';
+import 'package:mh_books/src/controllers/books.dart';
 import 'package:mh_books/src/widgets/book_listing.dart';
 
 class BooksScreen extends ConsumerWidget {
