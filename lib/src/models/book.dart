@@ -1,3 +1,6 @@
+import 'package:flutter/cupertino.dart';
+
+@immutable
 class Book implements Comparable<Book> {
   final String title;
   final String? subtitle;
@@ -30,7 +33,8 @@ class Book implements Comparable<Book> {
     this.url,
     this.pdfs,
   }) : assert(
-          isbn10 != null || isbn13 != null,
+          (isbn10 != null && isbn10.length == 10) ||
+              (isbn13 != null && isbn13.length == 13),
           'All key values cannot be null.',
         );
 

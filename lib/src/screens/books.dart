@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mh_books/src/models/book.dart';
-import 'package:mh_books/src/providers_loader.dart';
 import 'package:mh_books/src/screens/book_detail.dart';
+import 'package:mh_books/src/states/books.dart';
 import 'package:mh_books/src/widgets/book_listing.dart';
 
-class BooksScreen extends StatelessWidget {
+class BooksScreen extends ConsumerWidget {
   static const title = 'Books';
 
   const BooksScreen({super.key});
@@ -25,13 +25,11 @@ class BooksScreen extends StatelessWidget {
           ));
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(title),
-      ),
-      body: Consumer(
-        builder: ((context, ref, child) => ref.watch(newBooksProvider).when(
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
+        appBar: AppBar(
+          title: const Text(title),
+        ),
+        body: ref.watch(booksControllerProvider).when(
               data: (books) => books.isEmpty
                   ? const Center(
                       child: Text('There are no books to display.'),
@@ -45,15 +43,24 @@ class BooksScreen extends StatelessWidget {
                         ).toList(),
                       ),
                     ),
-              error: (object, stackTrace) => const Center(
-                child: Text(
-                  'There was an error loading the books.',
-                  style: TextStyle(color: Colors.red),
+              error: (object, stackTrace) => Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'There was an error loading the books.',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => ref
+                          .watch(booksControllerProvider.notifier)
+                          .fetchNewBooks(),
+                      child: const Text('Retry'),
+                    ),
+                  ],
                 ),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-            )),
-      ),
-    );
-  }
+            ),
+      );
 }
