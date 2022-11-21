@@ -6,25 +6,51 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mh_books/src/app.dart';
+import 'package:mh_books/src/models/book.dart';
+import 'package:mh_books/src/repos/books.dart';
+import 'package:mh_books/src/widgets/book_listing.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockBooksRepository extends Mock implements BooksRepository {}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MHBooks());
+  late BooksRepository mockBooksRepository;
+  final newBooksFromRepo = [
+    const Book(title: 'Test 10', isbn10: '0123456789'),
+    const Book(title: 'Test 20', isbn10: '1234567890'),
+    const Book(title: 'Test 30', isbn13: '0123456789012'),
+  ];
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  void mockRepoFetchNewBooksReturnsBooksFromRepo() =>
+      when(mockBooksRepository.fetchNewBooks)
+          .thenAnswer((_) async => Future.value(newBooksFromRepo));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  setUp(() {
+    mockBooksRepository = MockBooksRepository();
+    mockRepoFetchNewBooksReturnsBooksFromRepo();
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('App opens to [CircularProgressIndicator]',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: ProviderContainer(
+        overrides: [
+          booksRepositoryProvider.overrideWithValue(mockBooksRepository),
+        ],
+      ),
+      child: const MHBooks(),
+    ));
+    expect(find.byWidget(const Scaffold()), findsOneWidget);
+
+    // await tester.pumpAndSettle(const Duration(seconds: 3));
+    // expect(find.byType(BookListing), findsWidgets);
+
+    // await tester.tap(find.byType(BookListing));
+    // await tester.pump();
+    // expect(find.text('1'), findsOneWidget);
   });
 }
