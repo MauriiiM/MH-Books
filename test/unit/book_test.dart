@@ -12,71 +12,77 @@ class Listener<T> extends Mock {
 }
 
 void main() {
-  late BooksController testingController;
-  late MockBooksRepository mockBooksRepository;
-  late ProviderContainer container;
-  late Listener<AsyncValue<Iterable<Book>>> ctrlrProviderListener;
-  final booksFromRepo = [
-    const Book(title: 'Test 1', isbn10: '0123456789'),
-    const Book(title: 'Test 2', isbn10: '1234567890'),
-    const Book(title: 'Test 3', isbn13: '0123456789012'),
-  ];
+  testBooksSerialization();
+  testBooksController();
+}
 
-// returns an overwrite to expected [booksRepositoryProvider]
-  ProviderContainer makeProviderContainer(
-    MockBooksRepository mockBooksRepository,
-  ) {
-    final container = ProviderContainer(
-      overrides: [
-        booksRepositoryProvider.overrideWithValue(mockBooksRepository),
-      ],
-    );
-    addTearDown(container.dispose);
-    return container;
-  }
+void testBooksSerialization() {}
 
-  void mockRepoFetchBookReturnsBooksFromRepo() =>
-      when(mockBooksRepository.fetchNewBooks)
-          .thenAnswer((_) async => Future.value(booksFromRepo));
-
-  setUp(() {
-    mockBooksRepository = MockBooksRepository();
-    mockRepoFetchBookReturnsBooksFromRepo();
-
-    ctrlrProviderListener = Listener<AsyncValue<Iterable<Book>>>();
-    container = makeProviderContainer(mockBooksRepository)
-      ..listen(
-        booksControllerProvider,
-        ctrlrProviderListener,
-        fireImmediately: true,
-      );
-    testingController = container.read(booksControllerProvider.notifier);
-
-    registerFallbackValue(const AsyncLoading<Iterable<Book>>());
-  });
-
-  test(
-    'Initial default values for BooksController',
-    () async {
-      verifyInOrder([
-        () => ctrlrProviderListener(null, const AsyncLoading<Iterable<Book>>()),
-        () => ctrlrProviderListener(
-              const AsyncLoading<Iterable<Book>>(),
-              AsyncData(booksFromRepo),
-            ),
-      ]);
-      verifyNoMoreInteractions(ctrlrProviderListener);
-      verify(mockBooksRepository.fetchNewBooks).called(1);
-      verifyNever(mockBooksRepository.searchBooks);
-    },
-  );
-
+void testBooksController() {
   group(
-    'BooksController.getNewBooks()',
+    'BooksController',
     () {
+      late BooksController testingController;
+
+      late MockBooksRepository mockBooksRepository;
+      late ProviderContainer container;
+      late Listener<AsyncValue<Iterable<Book>>> ctrlrProviderListener;
+      final newBooksFromRepo = [
+        const Book(title: 'Test 10', isbn10: '0123456789'),
+        const Book(title: 'Test 20', isbn10: '1234567890'),
+        const Book(title: 'Test 30', isbn13: '0123456789012'),
+      ];
+      void mockRepoFetchNewBooksReturnsBooksFromRepo() =>
+          when(mockBooksRepository.fetchNewBooks)
+              .thenAnswer((_) async => Future.value(newBooksFromRepo));
+
+      setUp(() {
+        mockBooksRepository = MockBooksRepository();
+        mockRepoFetchNewBooksReturnsBooksFromRepo();
+
+        ctrlrProviderListener = Listener<AsyncValue<Iterable<Book>>>();
+        container = ProviderContainer(
+          overrides: [
+            booksRepositoryProvider.overrideWithValue(mockBooksRepository),
+          ],
+        )..listen(
+            booksControllerProvider,
+            ctrlrProviderListener,
+            fireImmediately: true,
+          );
+        addTearDown(container.dispose);
+
+        testingController = container.read(booksControllerProvider.notifier);
+      });
+
       test(
-        'Initializes controller; gets new books using BooksRepository',
+        'Initial default values',
         () async {
+          verifyInOrder([
+            () => ctrlrProviderListener(
+                  null,
+                  const AsyncLoading<Iterable<Book>>(),
+                ),
+            () => ctrlrProviderListener(
+                  const AsyncLoading<Iterable<Book>>(),
+                  AsyncData(newBooksFromRepo),
+                ),
+          ]);
+          verifyNoMoreInteractions(ctrlrProviderListener);
+          verify(mockBooksRepository.fetchNewBooks).called(1);
+          verifyNever(() => mockBooksRepository.searchBooks(any<String>()));
+        },
+      );
+
+      test(
+        '''
+        .fetchNewBooks():
+    sets state to AsyncLoading (with injected data from initial fetch)
+    sets state to AsyncData with value [newBooks]
+        ''',
+        () async {
+          registerFallbackValue(const AsyncLoading<Iterable<Book>>());
+
           await testingController.fetchNewBooks();
           verifyInOrder([
             () => ctrlrProviderListener(
@@ -85,34 +91,64 @@ void main() {
                 ),
             () => ctrlrProviderListener(
                   const AsyncLoading<Iterable<Book>>(),
-                  AsyncData(booksFromRepo),
+                  AsyncData(newBooksFromRepo),
                 ),
             () => ctrlrProviderListener(
-                  AsyncData(booksFromRepo),
+                  AsyncData(newBooksFromRepo),
                   any(that: isA<AsyncLoading<Iterable<Book>>>()), // has value
                 ),
             () => ctrlrProviderListener(
                   any(that: isA<AsyncLoading<Iterable<Book>>>()), // has value
-                  AsyncData(booksFromRepo),
+                  AsyncData(newBooksFromRepo),
                 ),
           ]);
           verifyNoMoreInteractions(ctrlrProviderListener);
           verify(mockBooksRepository.fetchNewBooks).called(2);
+          verifyNever(() => mockBooksRepository.searchBooks(any<String>()));
         },
       );
 
-      //     test(
-      //       '''Indicates fetching of data;
-      // sets books to the ones from repo;
-      // indicates not fetching''',
-      //       () async {
-      //         final future = testing.fetchNewBooks();
-      //         expect(testing.debugState.isFetching, true);
-      //         await future;
-      //         expect(testing.debugState.books, booksFromRepo);
-      //         expect(testing.debugState.isFetching, false);
-      //       },
-      //     );
+      test(
+        '''
+        .searchBooks():
+    sets state to AsyncLoading (with injected data from initial fetch)
+    sets state to AsyncData with value [searchedBooks]
+        ''',
+        () async {
+          final searchedBooksFromRepo = [
+            const Book(title: 'Test 11', isbn10: '2345678901'),
+            const Book(title: 'Test 21', isbn10: '3456789012'),
+            const Book(title: 'Test 31', isbn13: '1234567890123'),
+          ];
+          when(() => mockBooksRepository.searchBooks(''))
+              .thenAnswer((_) async => Future.value(searchedBooksFromRepo));
+          registerFallbackValue(const AsyncLoading<Iterable<Book>>());
+
+          await testingController.searchBooks('');
+          verifyInOrder([
+            () => ctrlrProviderListener(
+                  null,
+                  const AsyncLoading<Iterable<Book>>(),
+                ),
+            () => ctrlrProviderListener(
+                  const AsyncLoading<Iterable<Book>>(),
+                  AsyncData(newBooksFromRepo),
+                ),
+            () => ctrlrProviderListener(
+                  AsyncData(newBooksFromRepo),
+                  any(that: isA<AsyncLoading<Iterable<Book>>>()), // has value
+                ),
+            () => ctrlrProviderListener(
+                  any(that: isA<AsyncLoading<Iterable<Book>>>()), // has value
+                  AsyncData(searchedBooksFromRepo),
+                ),
+          ]);
+          verifyNoMoreInteractions(ctrlrProviderListener);
+          verify(mockBooksRepository.fetchNewBooks).called(1);
+          verify(() => mockBooksRepository.searchBooks(any<String>()))
+              .called(1);
+        },
+      );
     },
   );
 }
