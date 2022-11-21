@@ -12,10 +12,10 @@ class BooksController extends AsyncNotifier<Iterable<Book>> {
     state = await AsyncValue.guard(booksRepo.fetchNewBooks);
   }
 
-  Future<void> searchBooks() async {
+  Future<void> searchBooks(final String query) async {
     final booksRepo = ref.read(booksRepositoryProvider);
     state = const AsyncLoading();
-    state = await AsyncValue.guard(booksRepo.searchBooks);
+    state = await AsyncValue.guard(() => booksRepo.searchBooks(query));
   }
 
   @override

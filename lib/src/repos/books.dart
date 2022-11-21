@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart';
 import 'package:mh_books/src/models/book.dart';
 import 'package:http/http.dart' as http;
+import 'package:mh_books/src/util/exceptions.dart';
 
 class BooksRepository {
   static const _endpoint = 'https://api.itbook.store/1.0';
@@ -14,11 +15,12 @@ class BooksRepository {
     try {
       response = await http.get(Uri.parse('$_endpoint/new'));
     } catch (e) {
-      throw Exception('Failed to fetch new books.');
+      throw FetchDataException('Failed to fetch new books.');
     }
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to fetch new books. ${response.reasonPhrase}');
+      throw BadResponseException(
+          'Failed to fetch new books. ${response.reasonPhrase}');
     }
 
     final decodedResponse = jsonDecode(response.body);
@@ -37,12 +39,17 @@ class BooksRepository {
   /// Search books by title, author, ISBN or keywords. Formatted as:
   /// `/search/{query}`
   /// `/search/{query}/{page}`
-  Future<List<Book>> searchBooks({
-    final String? query,
+  Future<List<Book>> searchBooks(
+    final String query, {
     final String? page,
   }) async {
-    final response = await http
-        .get(Uri.parse('$_endpoint/search${page != null ? '/$page' : ''}'));
+    late final Response response;
+    try {
+      response = await http.get(
+          Uri.parse('$_endpoint/search/$query${page != null ? '/$page' : ''}'));
+    } catch (e) {
+      throw FetchDataException('Failed to fetch new books.');
+    }
 
     if (response.statusCode != 200) {
       throw Exception('Failed to search books. ${response.reasonPhrase}');
