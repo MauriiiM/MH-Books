@@ -14,9 +14,6 @@ class BookListing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = book.image;
-    // final locale = Localizations.localeOf(context);
-    // final currencyFormatter =
-    //     NumberFormat.simpleCurrency(locale: locale.toString());
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
